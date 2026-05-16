@@ -1,29 +1,37 @@
+import { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { LandingPage, QuizFlow } from './pages';
+
+type AppState = 'landing' | 'quiz' | 'cleanup' | 'receipt';
+
 function App() {
+  const [appState, setAppState] = useState<AppState>('landing');
+  const [severity, setSeverity] = useState<string>('1');
+
   return (
-    <div className="min-h-screen bg-obsidianDark text-white flex flex-col items-center justify-center overflow-hidden relative">
-      {/* Background ambient glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-neon-cyan/5 rounded-full blur-[120px] pointer-events-none" />
+    <AnimatePresence mode="wait">
+      {appState === 'landing' && (
+        <motion.div key="landing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full w-full">
+          <LandingPage onStartQuiz={(id) => {
+            setSeverity(id);
+            setAppState('quiz');
+          }} />
+        </motion.div>
+      )}
       
-      <main className="z-10 text-center glass-panel p-12 rounded-3xl border border-white/5">
-        <div className="mb-6 flex justify-center">
-          <div className="w-12 h-12 rounded-full border border-neon-cyan/50 shadow-glow-cyan flex items-center justify-center">
-            <div className="w-4 h-4 bg-neon-cyan rounded-full animate-pulse" />
-          </div>
-        </div>
-        
-        <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-4 text-glow text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60">
-          THE CLINIC
-        </h1>
-        
-        <p className="text-xl md:text-2xl text-white/50 tracking-wide font-light max-w-md mx-auto">
-          Digital Emergency Room
-        </p>
-      </main>
+      {appState === 'quiz' && (
+        <motion.div key="quiz" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full w-full">
+          <QuizFlow severityId={severity} onComplete={() => setAppState('cleanup')} />
+        </motion.div>
+      )}
       
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/20 text-sm font-mono tracking-widest">
-        SYSTEM.READY
-      </div>
-    </div>
+      {appState === 'cleanup' && (
+        <motion.div key="cleanup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full w-full bg-obsidianDark flex items-center justify-center text-white">
+          {/* Phase 2: 3D Cleanup will go here */}
+          <h1 className="text-3xl font-mono text-neon-cyan animate-pulse">INITIATING NEURAL CLEANUP...</h1>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
