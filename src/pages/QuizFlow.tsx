@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PageWrapper } from '../components/layout';
+
 import { Text, Button, GlassPanel } from '../components/ui';
 
 interface QuizFlowProps {
@@ -138,8 +138,7 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ severityId, onComplete }) =>
   const theme = colorMap[variant.color];
 
   return (
-    <PageWrapper ambientGlow={variant.color}>
-      
+    <>
       {/* HUD Progress Indicator */}
       <div className="fixed top-0 left-0 w-full h-1 bg-white/5 z-50">
         <motion.div 
@@ -152,11 +151,17 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ severityId, onComplete }) =>
 
       <div className="w-full max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[70vh] relative z-10 px-4">
         
-        <GlassPanel intensity="heavy" className="w-full p-8 md:p-12 overflow-hidden relative">
+        <GlassPanel intensity="heavy" className="w-full p-6 md:p-12 overflow-hidden relative">
           
           <AnimatePresence mode="wait">
             {!isFinishing ? (
-              <motion.div key="quiz-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <motion.div 
+                key="quiz-content" 
+                initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }} 
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} 
+                exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              >
                 <div className="flex justify-between items-center mb-10 border-b border-white/10 pb-6">
                   <Text variant="cyber" glow={variant.color} className="text-xs md:text-sm tracking-[0.3em]">
                     DIAGNOSTIC {currentIndex + 1}/{activeQuestions.length}
@@ -174,10 +179,10 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ severityId, onComplete }) =>
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={currentIndex}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
+                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
                     className="flex flex-col gap-8"
                   >
                     <Text variant="h3" className="text-white/90 font-medium leading-relaxed min-h-[80px]">
@@ -190,7 +195,7 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ severityId, onComplete }) =>
                           key={idx}
                           variant="ghost" 
                           onClick={handleSelect}
-                          className={`w-full justify-start text-left border border-white/10 ${theme.hoverBg} py-4 px-6 group`}
+                          className={`w-full justify-start text-left border border-white/10 ${theme.hoverBg} py-3 px-4 md:py-4 md:px-6 group`}
                         >
                           <span className={`text-white/30 ${theme.hoverText} mr-4 font-mono text-xs transition-colors`}>
                             {['A', 'B', 'C'][idx]}
@@ -207,10 +212,10 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ severityId, onComplete }) =>
             ) : (
               <motion.div 
                 key="finishing"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.8 }}
+                initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 className="flex flex-col items-center justify-center min-h-[300px] text-center"
               >
                 {/* Core Glow Icon */}
@@ -268,6 +273,6 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ severityId, onComplete }) =>
         </GlassPanel>
         
       </div>
-    </PageWrapper>
+    </>
   );
 };

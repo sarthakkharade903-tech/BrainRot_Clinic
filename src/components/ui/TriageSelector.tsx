@@ -26,7 +26,7 @@ export const TriageSelector: React.FC<{ onSelect?: (id: string) => void }> = ({ 
   };
 
   return (
-    <div className="w-full flex flex-col gap-4">
+    <div className="w-full flex flex-col gap-3 md:gap-4">
       {options.map((option, index) => {
         const isHovered = hoveredId === option.id;
         const isSelected = selectedId === option.id;
@@ -49,7 +49,7 @@ export const TriageSelector: React.FC<{ onSelect?: (id: string) => void }> = ({ 
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
             className={cn(
-              "relative w-full p-6 flex items-center justify-between group overflow-hidden rounded-2xl border transition-all duration-300 text-left",
+              "relative w-full p-4 md:p-6 flex items-center justify-between group overflow-hidden rounded-2xl border transition-all duration-300 text-left",
               isSelected || isHovered ? "bg-white/[0.08]" : "bg-white/[0.03] border-white/10",
               (isSelected || isHovered) ? borderColor : ""
             )}

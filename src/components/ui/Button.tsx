@@ -12,10 +12,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', glow = true, children, ...props }, ref) => {
     
     const variants = {
-      primary: 'bg-white/5 border border-neon-cyan/50 text-white hover:bg-neon-cyan/10 hover:border-neon-cyan',
-      secondary: 'bg-transparent border border-white/20 text-white/70 hover:text-white hover:border-white/50 hover:bg-white/5',
-      toxic: 'bg-white/5 border border-neon-green/50 text-white hover:bg-neon-green/10 hover:border-neon-green',
-      ghost: 'bg-transparent border-transparent text-white/50 hover:text-white hover:bg-white/5'
+      primary: 'bg-white/5 border border-neon-cyan/50 text-white hover:bg-neon-cyan/10 active:bg-neon-cyan/20 hover:border-neon-cyan',
+      secondary: 'bg-transparent border border-white/20 text-white/70 hover:text-white hover:border-white/50 hover:bg-white/5 active:bg-white/10',
+      toxic: 'bg-white/5 border border-neon-green/50 text-white hover:bg-neon-green/10 active:bg-neon-green/20 hover:border-neon-green',
+      ghost: 'bg-transparent border-transparent text-white/50 hover:text-white hover:bg-white/5 active:bg-white/10'
     };
 
     const glowStyles = {

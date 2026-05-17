@@ -2,6 +2,8 @@ import React from 'react';
 import { motion, type HTMLMotionProps } from 'framer-motion';
 import { cn } from '../../utils/cn';
 import { fadeUp } from '../../utils/motion';
+import { AmbientParticles } from './AmbientParticles';
+import { HudOverlay } from './HudOverlay';
 
 interface PageWrapperProps extends HTMLMotionProps<'main'> {
   ambientGlow?: 'cyan' | 'green' | 'orange' | 'none';
@@ -13,21 +15,85 @@ export const PageWrapper = React.forwardRef<HTMLElement, PageWrapperProps>(
     return (
       <div className="relative min-h-screen w-full overflow-hidden bg-obsidianDark text-white flex flex-col items-center justify-center selection:bg-neon-cyan/30 selection:text-white">
         
-        {/* Ambient Glow Backgrounds */}
-        {ambientGlow === 'cyan' && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[800px] max-h-[800px] bg-neon-cyan/5 rounded-full blur-[120px] pointer-events-none" />
-        )}
-        
-        {ambientGlow === 'green' && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[800px] max-h-[800px] bg-neon-green/5 rounded-full blur-[120px] pointer-events-none" />
-        )}
+        {/* Animated Gradient Orbs */}
+        {ambientGlow !== 'none' && (() => {
+          const glowColor = 
+            ambientGlow === 'cyan' ? 'bg-neon-cyan/[0.04]' : 
+            ambientGlow === 'green' ? 'bg-neon-green/[0.04]' : 
+            'bg-orange-500/[0.04]';
+          const secondaryGlowColor = 
+            ambientGlow === 'cyan' ? 'bg-neon-cyan/[0.02]' : 
+            ambientGlow === 'green' ? 'bg-neon-green/[0.02]' : 
+            'bg-orange-500/[0.02]';
 
-        {ambientGlow === 'orange' && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[800px] max-h-[800px] bg-orange-500/5 rounded-full blur-[120px] pointer-events-none" />
-        )}
+          return (
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+              {/* Primary Top-Left Orb */}
+              <motion.div 
+                className={cn("absolute top-[10%] left-[10%] w-[60vw] h-[60vw] max-w-[700px] max-h-[700px] rounded-full blur-[130px]", glowColor)}
+                animate={{ 
+                  x: [0, 40, 0, -40, 0], 
+                  y: [0, -40, 40, 0, 0], 
+                  scale: [1, 1.15, 0.9, 1.05, 1] 
+                }}
+                transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+              />
+              
+              {/* Secondary Bottom-Right Orb */}
+              <motion.div 
+                className={cn("absolute bottom-[10%] right-[10%] w-[70vw] h-[70vw] max-w-[800px] max-h-[800px] rounded-full blur-[150px]", secondaryGlowColor)}
+                animate={{ 
+                  x: [0, -50, 0, 50, 0], 
+                  y: [0, 50, -30, 20, 0], 
+                  scale: [1, 1.05, 1.15, 0.95, 1] 
+                }}
+                transition={{ duration: 32, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+              />
+
+              {/* Core Center Orb */}
+              <motion.div 
+                className={cn("absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] rounded-full blur-[100px]", secondaryGlowColor)}
+                animate={{ 
+                  scale: [1, 1.2, 1], 
+                  opacity: [0.5, 0.8, 0.5] 
+                }}
+                transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </div>
+          );
+        })()}
+
+        {/* Floating Digital Residue */}
+        <AmbientParticles colorVariant={ambientGlow} />
+
+        {/* Animated Scanline Drift */}
+        <motion.div 
+          className="absolute inset-0 pointer-events-none z-40 mix-blend-overlay opacity-20"
+          style={{
+            backgroundImage: `linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%), linear-gradient(90deg, rgba(255,0,0,0.06), rgba(0,255,0,0.02), rgba(0,0,255,0.06))`,
+            backgroundSize: '100% 4px, 3px 100%'
+          }}
+          animate={{ backgroundPosition: ["0px 0px", "0px 4px"] }}
+          transition={{ repeat: Infinity, duration: 0.2, ease: "linear" }}
+        />
+
+        {/* Edge Vignette Breathing */}
+        <motion.div 
+          className="absolute inset-0 pointer-events-none z-40"
+          style={{ boxShadow: 'inset 0 0 150px rgba(0,0,0,0.9)' }}
+          animate={{ opacity: [0.6, 1, 0.6] }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+        />
+
+        {/* Occasional Signal Flicker */}
+        <motion.div 
+          className="absolute inset-0 pointer-events-none z-50 bg-white mix-blend-overlay"
+          animate={{ opacity: [0, 0, 0, 0.04, 0, 0, 0] }}
+          transition={{ duration: 12, repeat: Infinity, times: [0, 0.4, 0.41, 0.42, 0.43, 0.9, 1] }}
+        />
 
         {/* Noise Texture Overlay for premium cinematic feel */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }} />
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-50" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }} />
 
         {/* Content Wrapper */}
         <motion.main
@@ -36,19 +102,14 @@ export const PageWrapper = React.forwardRef<HTMLElement, PageWrapperProps>(
           animate="animate"
           exit="exit"
           variants={fadeUp}
-          className={cn('relative z-10 w-full max-w-5xl mx-auto px-6 py-12 flex flex-col items-center', className)}
+          className={cn('relative z-20 w-full max-w-5xl mx-auto px-6 py-12 flex flex-col items-center', className)}
           {...props}
         >
           {children}
         </motion.main>
         
-        {/* Global Medical HUD Elements */}
-        <div className="fixed top-6 left-6 text-[10px] font-mono text-white/30 tracking-[0.3em] uppercase pointer-events-none hidden md:block">
-          CLINIC // SYSTEM.ACTIVE
-        </div>
-        <div className="fixed bottom-6 right-6 text-[10px] font-mono text-white/30 tracking-[0.3em] uppercase pointer-events-none hidden md:block">
-          STATUS // MONITORING
-        </div>
+        {/* Dynamic Telemetry HUD */}
+        <HudOverlay colorVariant={ambientGlow} />
       </div>
     );
   }
