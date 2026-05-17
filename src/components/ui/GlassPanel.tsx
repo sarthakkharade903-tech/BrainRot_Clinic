@@ -87,7 +87,7 @@ export const GlassPanel = React.forwardRef<HTMLDivElement, GlassPanelProps>(
         <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none z-0" />
         
         <div className="relative z-10">
-          {children}
+          {children as React.ReactNode}
         </div>
       </motion.div>
     );

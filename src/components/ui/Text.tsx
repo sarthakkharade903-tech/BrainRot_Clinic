@@ -7,7 +7,7 @@ type TextVariant = 'h1' | 'h2' | 'h3' | 'body' | 'mono' | 'cyber';
 interface TextProps extends HTMLMotionProps<'p'> {
   as?: React.ElementType;
   variant?: TextVariant;
-  glow?: 'cyan' | 'green' | 'white' | 'none';
+  glow?: 'cyan' | 'green' | 'white' | 'none' | 'orange';
 }
 
 export const Text = React.forwardRef<HTMLElement, TextProps>(
@@ -28,6 +28,7 @@ export const Text = React.forwardRef<HTMLElement, TextProps>(
       cyan: 'text-neon-cyan text-glow-cyan',
       green: 'text-neon-green text-glow-green',
       white: 'text-white text-glow-white',
+      orange: 'text-orange-500 drop-shadow-[0_0_8px_rgba(255,165,0,0.8)]',
       none: ''
     };
 

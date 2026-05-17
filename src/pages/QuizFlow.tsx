@@ -1,126 +1,96 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { Text, Button, GlassPanel } from '../components/ui';
 
+import { INITIAL_METRICS, quizVariants, getWeightedRandomQuestions, getAdaptiveMessage, getFinishingMessages, getContextualQuestion } from '../data/quizData';
+import type { NeuralMetrics, Question } from '../data/quizData';
+
 interface QuizFlowProps {
   severityId: string;
-  onComplete: () => void;
-}
-
-interface Question {
-  title: string;
-  options: string[];
-  weight?: number; // Higher weight = more likely to be selected
-}
-
-// --------------------------------------------------
-// MASSIVE DYNAMIC QUESTION POOLS
-// --------------------------------------------------
-const quizVariants: Record<string, {
-  color: 'cyan' | 'orange' | 'green';
-  diagnosticMessage: string;
-  questions: Question[];
-}> = {
-  '1': {
-    color: 'cyan',
-    diagnosticMessage: 'MINOR COGNITIVE SCROLL DAMAGE DETECTED',
-    questions: [
-      { weight: 2, title: "Someone texts you “can I call you real quick?” What is your immediate reaction?", options: ["An immediate spike in cortisol.", "Texting back “in a meeting” from my bed.", "Letting it ring out and typing “what’s up?” two minutes later."] },
-      { weight: 2, title: "You are trying to fall asleep. What is the final barrier?", options: ["“One more video” turning into a 90-minute rabbit hole.", "Answering a text from four days ago.", "Checking my alarm six times to make sure it’s actually on."] },
-      { weight: 2, title: "You unlocked your phone to look up something specific. Where are you 45 seconds later?", options: ["Staring at the home screen, completely forgetting the task.", "Deep in the comments section of a random thread.", "Checking an ex’s LinkedIn profile."] },
-      { weight: 2, title: "You need to buy a basic item online. What is the process?", options: ["Reading 50 reviews to ensure it won't ruin my life.", "Sorting by lowest price and praying.", "Leaving it in the cart for a month because the shipping fee felt personal."] },
-      { weight: 1, title: "You sit down to watch a movie. What happens five minutes in?", options: ["I put my phone in another room.", "I pause it to check Wikipedia for an actor's entire filmography.", "I start scrolling and miss the entire plot."] },
-      { weight: 1, title: "You are watching a YouTube video that is 12 minutes long.", options: ["I watch it normally.", "I put it on 1.5x speed immediately.", "I rapidly skip through the timeline looking for the visual spikes."] },
-      { weight: 1, title: "You have a free hour. What is the default action?", options: ["Do something productive or relaxing.", "Open an app, get bored, immediately open another app.", "Refresh my email inbox three times for no reason."] },
-      { weight: 1, title: "You are eating a meal alone.", options: ["I eat in silence.", "I need a podcast playing in the background.", "I cannot take a single bite until I find the perfect 20-minute video."] },
-      { weight: 1, title: "You have to make a phone call to schedule an appointment.", options: ["I dial the number immediately.", "I rehearse the first sentence in my head three times.", "I stare at the number for ten minutes until they close."] },
-      { weight: 1, title: "You open a new tab on your browser.", options: ["To search something specific.", "To check Twitter, which is already open in another tab.", "To stare blankly at the Google homepage."] },
-      { weight: 1, title: "You receive an email marked “URGENT”.", options: ["I read and reply immediately.", "I mark it unread and pretend I didn't see it.", "I leave it sitting in my inbox for three weeks as a psychological weight."] }
-    ]
-  },
-  '2': {
-    color: 'orange',
-    diagnosticMessage: 'MODERATE ATTENTION DEFICIT DETECTED',
-    questions: [
-      { weight: 2, title: "How many tabs are currently open on your mobile browser?", options: ["Enough to make the browser icon change to a smiley face.", "42 tabs. None emotionally closed.", "I don’t check. If I look, the app might crash."] },
-      { weight: 2, title: "You closed an app, locked your phone, and unlocked it two seconds later. Why?", options: ["Muscle memory took over.", "I hoped the internet changed in those two seconds.", "I literally forgot I just closed it."] },
-      { weight: 2, title: "You are currently listening to music, but you also have a muted video playing on your laptop. Why?", options: ["Absolute silence is terrifying.", "My brain requires two streams of input to stay calm.", "I genuinely forgot it was open."] },
-      { weight: 2, title: "It’s 3:00 AM. Why are you still awake?", options: ["A 3-hour video essay on a niche controversy.", "I’m deep in a comment section argument.", "The algorithm found my specific, unaddressed insecurity."] },
-      { weight: 1, title: "You’re watching a movie and someone speaks a little too quietly. What is your reaction?", options: ["I turn the volume up.", "I instinctively look down hoping for a subtitle toggle.", "I accept that I missed the dialogue forever."] },
-      { weight: 1, title: "You have to watch a 15-second unskippable ad.", options: ["I wait patiently.", "I mute the tab and look at my phone for exactly 15 seconds.", "I close the video. It’s no longer worth it."] },
-      { weight: 1, title: "Your weekly screen time report pops up.", options: ["I review it to optimize my week.", "I swipe it away before my brain processes the number.", "I laugh at the 11-hour daily average. It's a high score."] },
-      { weight: 1, title: "You are in an elevator with one other person.", options: ["I make polite small talk.", "I stare intently at the floor numbers.", "I pull out my phone and aggressively scroll through my own settings app."] },
-      { weight: 1, title: "Someone sends you a 4-minute voice note.", options: ["I listen to it immediately.", "I listen to it on 2x speed while doing dishes.", "I reply “omg crazy” without listening to a single second."] },
-      { weight: 1, title: "You receive a notification that someone liked a post of yours from 2018.", options: ["Oh, nice.", "Absolute panic. Who is perceiving me?", "I immediately archive the entire year of 2018."] }
-    ]
-  },
-  '3': {
-    color: 'green',
-    diagnosticMessage: 'SEVERE DOPAMINE CORRUPTION DETECTED',
-    questions: [
-      { weight: 2, title: "You see a beautiful sunset in real life. What is your immediate thought?", options: ["“This looks like a high-end render.”", "“The graphics out here are crazy.”", "I need to take a photo to prove I was outside."] },
-      { weight: 2, title: "How do you maintain your closest friendships?", options: ["A silent, non-stop exchange of TikTok links.", "Sending a meme that explains my mental state instead of talking.", "We haven’t spoken in actual paragraphs since 2023."] },
-      { weight: 2, title: "How does your brain process real-time, physical conversations lately?", options: ["I catch myself looking for a 2x speed toggle on the person.", "I genuinely feel like I need subtitles for human speech.", "I just nod along while mentally scrolling my feed."] },
-      { weight: 2, title: "Your phone screen goes black for a second and you see your own reflection. What is the vibe?", options: ["Jumpscare.", "Total existential defeat.", "I don’t recognize the person looking back."] },
-      { weight: 1, title: "What happens when your internet goes down for exactly 3 minutes?", options: ["I go get a glass of water.", "I toggle airplane mode repeatedly like a rat hitting a lever.", "I legitimately forget how to exist in physical space."] },
-      { weight: 1, title: "You're trying to focus on a serious task.", options: ["I put on lo-fi beats.", "I need a split-screen with Subway Surfers gameplay.", "I need three screens, an ambient noise generator, and a podcast to feel normal."] },
-      { weight: 1, title: "How do you respond to a complex emotional situation?", options: ["I process my feelings and communicate.", "I find a TikTok therapist explaining it in 60 seconds.", "I reply with a reaction image of a cat staring blankly."] },
-      { weight: 1, title: "You go to the bathroom.", options: ["I do my business and leave.", "I take my phone but only stay for 5 minutes.", "My legs fall asleep while I argue with strangers in a comment section."] },
-      { weight: 1, title: "What does your inner monologue sound like?", options: ["My own voice, narrating thoughts.", "A text-to-speech AI voice reading Reddit posts.", "A chaotic mashup of trending audios overlapping each other."] },
-      { weight: 1, title: "You drop your phone on your face while scrolling in bed.", options: ["I put the phone away and sleep.", "I wince, adjust my grip, and keep scrolling.", "I don't feel physical pain anymore. The scroll is eternal."] }
-    ]
-  }
-};
-
-// Weighted random selection engine
-function getWeightedRandomQuestions(pool: Question[], count: number): Question[] {
-  const selected: Question[] = [];
-  const available = [...pool];
-  
-  while (selected.length < count && available.length > 0) {
-    const totalWeight = available.reduce((sum, q) => sum + (q.weight || 1), 0);
-    let random = Math.random() * totalWeight;
-    
-    for (let i = 0; i < available.length; i++) {
-      random -= (available[i].weight || 1);
-      if (random <= 0) {
-        selected.push(available[i]);
-        available.splice(i, 1);
-        break;
-      }
-    }
-  }
-  return selected;
+  onComplete: (profile: NeuralMetrics) => void;
 }
 
 export const QuizFlow: React.FC<QuizFlowProps> = ({ severityId, onComplete }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFinishing, setIsFinishing] = useState(false);
   const [activeQuestions, setActiveQuestions] = useState<Question[]>([]);
+  const [profile, setProfile] = useState<NeuralMetrics>(INITIAL_METRICS);
+  
+  // Adaptive Messaging State
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [adaptiveMessage, setAdaptiveMessage] = useState("CALIBRATING NEURAL BASELINE...");
+  
+  // Finishing Sequence State
+  const [finishingMsgIndex, setFinishingMsgIndex] = useState(0);
+  const finishingMessages = useMemo(() => isFinishing ? getFinishingMessages(profile) : [], [isFinishing, profile]);
+
+  useEffect(() => {
+    if (isFinishing && finishingMsgIndex < finishingMessages.length - 1) {
+      const timer = setTimeout(() => setFinishingMsgIndex(prev => prev + 1), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [isFinishing, finishingMsgIndex, finishingMessages]);
 
   // Fallback to '1' if invalid severityId is passed
   const variant = quizVariants[severityId] || quizVariants['1'];
 
-  // Initialize randomized questions on mount
+  // Initialize randomized questions + 1 contextual time-aware question on mount
   useEffect(() => {
     const randomized = getWeightedRandomQuestions(variant.questions, 3);
+    const contextual = getContextualQuestion();
+    // Inject contextual Q at a random position (not first, feels more natural)
+    const insertAt = Math.floor(Math.random() * randomized.length) + 1;
+    randomized.splice(insertAt, 0, contextual);
     setActiveQuestions(randomized);
   }, [severityId, variant.questions]);
 
-  const handleSelect = () => {
-    // Mobile Haptic Feedback
+  const handleSelect = (impact: Partial<NeuralMetrics>) => {
+    // Haptic Feedback
     if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
       window.navigator.vibrate(40);
     }
 
-    if (currentIndex < activeQuestions.length - 1) {
+    // Update Hidden Neural Profile
+    const newProfile = {
+      dopamineCorruption: profile.dopamineCorruption + (impact.dopamineCorruption || 0),
+      attentionDecay: profile.attentionDecay + (impact.attentionDecay || 0),
+      grassDeficiency: profile.grassDeficiency + (impact.grassDeficiency || 0),
+      neuralStability: profile.neuralStability + (impact.neuralStability || 0),
+      cognitiveFragmentation: profile.cognitiveFragmentation + (impact.cognitiveFragmentation || 0),
+    };
+    setProfile(newProfile);
+
+    const progressRatio = currentIndex / activeQuestions.length;
+
+    // Compute Adaptive Message
+    const totalImpact = Object.values(impact).reduce((a, b) => Math.abs(a as number) + Math.abs(b as number), 0);
+    const msg = getAdaptiveMessage(newProfile, impact, progressRatio);
+    setAdaptiveMessage(msg);
+
+    const isSevere = totalImpact > 25;
+    const isCritical = totalImpact > 35;
+
+    // Dynamic pacing: Deeper stages and severe answers get longer, more dramatic pauses
+    let pauseDuration = 0;
+    if (isCritical && progressRatio > 0.6) pauseDuration = 2200; // Late stage critical realization
+    else if (isSevere) pauseDuration = 1400; // Standard severe anomaly
+    else if (progressRatio > 0.7) pauseDuration = 800; // Subtle processing delay late in the quiz
+
+    if (pauseDuration > 0 && currentIndex < activeQuestions.length - 1) {
+      setIsAnalyzing(true);
+      setTimeout(() => {
+        setIsAnalyzing(false);
+        setCurrentIndex(prev => prev + 1);
+      }, pauseDuration);
+    } else if (currentIndex < activeQuestions.length - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
       setIsFinishing(true);
+      const finalMsgs = getFinishingMessages(newProfile);
       setTimeout(() => {
-        onComplete();
-      }, 4500); // Cinematic hold for staggered animations
+        onComplete(newProfile);
+      }, Math.max(4500, finalMsgs.length * 1200 + 500)); // Dynamic cinematic hold
     }
   };
 
@@ -163,9 +133,22 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ severityId, onComplete }) =>
                 transition={{ duration: 0.4, ease: "easeOut" }}
               >
                 <div className="flex justify-between items-center mb-10 border-b border-white/10 pb-6">
-                  <Text variant="cyber" glow={variant.color} className="text-xs md:text-sm tracking-[0.3em]">
-                    DIAGNOSTIC {currentIndex + 1}/{activeQuestions.length}
-                  </Text>
+                  <div className="flex flex-col gap-1">
+                    <Text variant="cyber" glow={variant.color} className="text-xs md:text-sm tracking-[0.3em]">
+                      DIAGNOSTIC {currentIndex + 1}/{activeQuestions.length}
+                    </Text>
+                    <AnimatePresence mode="wait">
+                      <motion.span 
+                        key={adaptiveMessage}
+                        initial={{ opacity: 0, filter: 'blur(4px)' }}
+                        animate={{ opacity: 1, filter: 'blur(0px)' }}
+                        exit={{ opacity: 0, filter: 'blur(4px)' }}
+                        className="text-[9px] md:text-[10px] font-mono text-white/40 tracking-[0.2em] uppercase"
+                      >
+                        {adaptiveMessage}
+                      </motion.span>
+                    </AnimatePresence>
+                  </div>
                   <div className="flex gap-2">
                     {activeQuestions.map((_, idx) => (
                       <div 
@@ -177,36 +160,51 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ severityId, onComplete }) =>
                 </div>
 
                 <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentIndex}
-                    initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
-                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                    exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
-                    className="flex flex-col gap-8"
-                  >
-                    <Text variant="h3" className="text-white/90 font-medium leading-relaxed min-h-[80px]">
-                      {activeQuestions[currentIndex].title}
-                    </Text>
+                  {isAnalyzing ? (
+                    <motion.div
+                      key="analyzing-pause"
+                      initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
+                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
+                      transition={{ duration: 0.4, ease: "easeOut" }}
+                      className="flex flex-col items-center justify-center min-h-[250px] text-center"
+                    >
+                      <Text variant="cyber" className={`text-sm md:text-base tracking-[0.4em] ${theme.text} animate-pulse`}>
+                        {adaptiveMessage}
+                      </Text>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key={currentIndex}
+                      initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
+                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
+                      transition={{ duration: 0.4, ease: "easeOut" }}
+                      className="flex flex-col gap-8"
+                    >
+                      <Text variant="h3" className="text-white/90 font-medium leading-relaxed min-h-[80px]">
+                        {activeQuestions[currentIndex].title}
+                      </Text>
 
                     <div className="flex flex-col gap-4">
                       {activeQuestions[currentIndex].options.map((opt, idx) => (
                         <Button 
                           key={idx}
                           variant="ghost" 
-                          onClick={handleSelect}
+                          onClick={() => handleSelect(opt.impact)}
                           className={`w-full justify-start text-left border border-white/10 ${theme.hoverBg} py-3 px-4 md:py-4 md:px-6 group`}
                         >
                           <span className={`text-white/30 ${theme.hoverText} mr-4 font-mono text-xs transition-colors`}>
                             {['A', 'B', 'C'][idx]}
                           </span>
                           <span className="text-white/80 group-hover:text-white transition-colors">
-                            {opt}
+                            {opt.text}
                           </span>
                         </Button>
                       ))}
                     </div>
-                  </motion.div>
+                    </motion.div>
+                  )}
                 </AnimatePresence>
               </motion.div>
             ) : (
@@ -252,9 +250,19 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ severityId, onComplete }) =>
                   transition={{ delay: 2.5, duration: 0.8 }}
                   className="w-full max-w-xs"
                 >
-                  <Text variant="mono" className="text-white/50 tracking-[0.3em] text-[10px] md:text-xs mb-3">
-                    PREPARING NEURAL WIPE...
-                  </Text>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={finishingMsgIndex}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Text variant="mono" className="text-white/50 tracking-[0.3em] text-[10px] md:text-xs mb-3">
+                        {finishingMessages[finishingMsgIndex] || "PREPARING NEURAL WIPE..."}
+                      </Text>
+                    </motion.div>
+                  </AnimatePresence>
                   
                   {/* Progress Bar for the wipe prep */}
                   <div className="w-full h-[2px] bg-white/10 overflow-hidden rounded-full">
@@ -262,7 +270,7 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ severityId, onComplete }) =>
                       className={`h-full ${theme.bg} ${theme.shadow}`}
                       initial={{ width: "0%" }}
                       animate={{ width: "100%" }}
-                      transition={{ delay: 2.5, duration: 2.0, ease: "linear" }}
+                      transition={{ delay: 2.5, duration: Math.max(2, finishingMessages.length * 1.2), ease: "linear" }}
                     />
                   </div>
                 </motion.div>

@@ -45,7 +45,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         {...props}
       >
-        <span className="relative z-10">{children}</span>
+        <span className="relative z-10">{children as React.ReactNode}</span>
         
         {/* Hover Highlight Overlay */}
         <div className="absolute inset-0 rounded-full opacity-0 hover:opacity-100 transition-opacity duration-500 bg-gradient-to-r from-transparent via-white/5 to-transparent" />

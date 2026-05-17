@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { PageWrapper } from '../components/layout';
 import { Text, GlassPanel, TriageSelector } from '../components/ui';
 import { staggerContainer, fadeUp, pulseGlow } from '../utils/motion';
 

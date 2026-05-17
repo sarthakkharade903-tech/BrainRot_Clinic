@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { LandingPage, QuizFlow } from './pages';
+import { DiagnosisReveal } from './pages/DiagnosisReveal';
 import { PageWrapper } from './components/layout';
+import type { NeuralMetrics } from './data/quizData';
 
-type AppState = 'landing' | 'quiz' | 'cleanup' | 'receipt';
+type AppState = 'landing' | 'quiz' | 'receipt';
 
-const getAmbientGlow = (severity: string) => {
+const getAmbientGlow = (severity: string): 'cyan' | 'orange' | 'green' => {
   if (severity === '2') return 'orange';
   if (severity === '3') return 'green';
   return 'cyan';
@@ -14,6 +16,7 @@ const getAmbientGlow = (severity: string) => {
 function App() {
   const [appState, setAppState] = useState<AppState>('landing');
   const [severity, setSeverity] = useState<string>('1');
+  const [neuralProfile, setNeuralProfile] = useState<NeuralMetrics | null>(null);
 
   return (
     <PageWrapper ambientGlow={getAmbientGlow(severity)}>
@@ -43,21 +46,29 @@ function App() {
             transition={{ duration: 0.4, ease: "easeOut" }} 
             className="h-full w-full flex flex-col items-center justify-center"
           >
-            <QuizFlow severityId={severity} onComplete={() => setAppState('cleanup')} />
+            <QuizFlow 
+              severityId={severity} 
+              onComplete={(profile) => {
+                setNeuralProfile(profile);
+                setAppState('receipt');
+              }} 
+            />
           </motion.div>
         )}
         
-        {appState === 'cleanup' && (
+        {appState === 'receipt' && neuralProfile && (
           <motion.div 
-            key="cleanup" 
+            key="receipt" 
             initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }} 
             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} 
             exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }} 
-            transition={{ duration: 0.4, ease: "easeOut" }} 
-            className="h-full w-full flex items-center justify-center text-white"
+            transition={{ duration: 0.5, ease: "easeOut" }} 
+            className="h-full w-full flex flex-col items-center justify-center overflow-y-auto"
           >
-            {/* Phase 2: 3D Cleanup will go here */}
-            <h1 className="text-3xl font-mono text-neon-cyan animate-pulse tracking-[0.2em]">INITIATING NEURAL CLEANUP...</h1>
+            <DiagnosisReveal 
+              profile={neuralProfile} 
+              severityColor={getAmbientGlow(severity)}
+            />
           </motion.div>
         )}
       </AnimatePresence>
