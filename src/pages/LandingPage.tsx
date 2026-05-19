@@ -1,15 +1,50 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Text, GlassPanel, TriageSelector } from '../components/ui';
+import { AtmosphericScene } from '../components/layout/AtmosphericScene';
 import { staggerContainer, fadeUp, pulseGlow } from '../utils/motion';
+
+// ── Rotating behavioral observations ─────────────────────────────────────────
+const OBSERVATIONS = [
+  "Opens phone to check the time. Scrolls for 14 minutes instead.",
+  "Has 9 tabs open from last Tuesday. None of them finished.",
+  "Read the first sentence of an article. Formed a complete opinion.",
+  "Felt guilty about not being productive. Scrolled to cope.",
+  "Replied 'sounds good' without reading the message.",
+  "Started typing a message. Deleted it. Reopened the app.",
+  "Watched 3 seconds of a tutorial. Considered themselves informed.",
+  "Opened the fridge. Forgot why. Checked the phone instead.",
+  "Paused a video to scroll. Forgot the video. Forgot the scroll.",
+  "Saved something to watch later. Later became never.",
+];
 
 interface LandingPageProps {
   onStartQuiz: (severityId: string) => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onStartQuiz }) => {
+  const [obsIndex, setObsIndex] = useState(0);
+  const [obsVisible, setObsVisible] = useState(true);
+
+  // Rotate behavioral observation every 4.2s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setObsVisible(false);
+      const timer = setTimeout(() => {
+        setObsIndex(i => (i + 1) % OBSERVATIONS.length);
+        setObsVisible(true);
+      }, 520);
+      return () => clearTimeout(timer);
+    }, 4200);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <motion.div 
+    <>
+      {/* 3D atmospheric layer — sits fixed behind all content */}
+      <AtmosphericScene />
+
+      <motion.div 
       className="w-full max-w-4xl mx-auto flex flex-col items-center justify-center relative z-10"
       variants={staggerContainer}
       initial="initial"
@@ -30,7 +65,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartQuiz }) => {
       </motion.div>
 
       {/* Hero Text */}
-      <motion.div variants={fadeUp} className="text-center mb-6">
+      <motion.div variants={fadeUp} className="text-center mb-4">
         <Text variant="h1" glow="cyan" className="mb-4 text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70">
           DIGITAL EMERGENCY ROOM
         </Text>
@@ -39,8 +74,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartQuiz }) => {
         </Text>
       </motion.div>
 
+      {/* Rotating behavioral observation — the live "aware" pulse */}
+      <motion.div variants={fadeUp} className="h-8 flex items-center justify-center mb-2 px-6">
+        <AnimatePresence mode="wait">
+          {obsVisible && (
+            <motion.p
+              key={obsIndex}
+              initial={{ opacity: 0, y: 7, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, y: 0,  filter: 'blur(0px)' }}
+              exit={{    opacity: 0, y: -6, filter: 'blur(4px)' }}
+              transition={{ duration: 0.55, ease: 'easeOut' }}
+              className="text-center text-sm font-light"
+              style={{
+                fontFamily: 'Georgia, serif',
+                fontStyle: 'italic',
+                color: 'rgba(255,255,255,0.3)',
+              }}
+            >
+              "{OBSERVATIONS[obsIndex]}"
+            </motion.p>
+          )}
+        </AnimatePresence>
+      </motion.div>
+
       {/* Divider */}
-      <motion.div variants={fadeUp} className="w-full max-w-xs h-px bg-gradient-to-r from-transparent via-neon-cyan/30 to-transparent my-12" />
+      <motion.div variants={fadeUp} className="w-full max-w-xs h-px bg-gradient-to-r from-transparent via-neon-cyan/30 to-transparent my-10" />
 
       {/* Triage Prompt */}
       <motion.div variants={fadeUp} className="w-full max-w-xl mx-auto">
@@ -58,5 +116,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartQuiz }) => {
       </motion.div>
 
     </motion.div>
+    </>
   );
 };

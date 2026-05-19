@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Text, GlassPanel } from '../components/ui';
-import { getDiagnosis, getMetricInterpretation, getExitLine } from '../data/quizData';
+import { Text } from '../components/ui';
+import { ExportControls } from '../components/ui/ExportControls';
+import { useReceiptExport } from '../hooks/useReceiptExport';
+import { getDiagnosis, getClinicalStats, getExitLine } from '../data/quizData';
 import type { NeuralMetrics } from '../data/quizData';
 
 interface DiagnosisRevealProps {
@@ -22,57 +24,93 @@ type Stage = 'processing' | 'lockIn' | 'reveal';
 
 // ─── Severity palette ─────────────────────────────────────────────────────────
 const severityPalette = {
-  low:      { text: 'text-neon-cyan',  bar: 'bg-neon-cyan',    glow: 'shadow-glow-cyan' },
-  moderate: { text: 'text-orange-400', bar: 'bg-orange-400',   glow: 'shadow-[0_0_15px_2px_rgba(255,165,0,0.5)]' },
-  high:     { text: 'text-orange-500', bar: 'bg-orange-500',   glow: 'shadow-[0_0_15px_2px_rgba(255,100,0,0.5)]' },
-  critical: { text: 'text-neon-green', bar: 'bg-neon-green',   glow: 'shadow-glow-green' },
+  low:      { text: 'text-neon-cyan',  bar: 'bg-neon-cyan',  glow: 'shadow-glow-cyan',  hex: '#00f5ff' },
+  moderate: { text: 'text-orange-400', bar: 'bg-orange-400', glow: 'shadow-[0_0_15px_2px_rgba(255,165,0,0.5)]', hex: '#fb923c' },
+  high:     { text: 'text-orange-500', bar: 'bg-orange-500', glow: 'shadow-[0_0_15px_2px_rgba(255,100,0,0.5)]', hex: '#f97316' },
+  critical: { text: 'text-neon-green', bar: 'bg-neon-green', glow: 'shadow-glow-green', hex: '#39ff14' },
 };
+
+// ─── Case Status per severity ─────────────────────────────────────────────────
+const caseStatusMap = {
+  low:      'MONITORED',
+  moderate: 'COMPROMISED',
+  high:     'ACTIVE',
+  critical: 'ACTIVE',
+};
+
+// ─── Rarity line per severity ─────────────────────────────────────────────────
+const rarityMap = {
+  low:      'OBSERVED IN 61.2% OF EVALUATIONS',
+  moderate: 'OBSERVED IN 27.4% OF EVALUATIONS',
+  high:     'OBSERVED IN 6.9% OF EVALUATIONS',
+  critical: 'OBSERVED IN 4.8% OF EVALUATIONS',
+};
+
+// ─── Stable barcode bars ──────────────────────────────────────────────────────
+const BARCODE_BARS = Array.from({ length: 38 }, () => ({
+  width:   Math.random() > 0.55 ? '2px' : '1px',
+  height:  Math.random() > 0.75 ? '100%' : '78%',
+  opacity: (Math.random() * 0.35 + 0.55).toFixed(2),
+}));
 
 export const DiagnosisReveal: React.FC<DiagnosisRevealProps> = ({ profile, severityColor }) => {
   const [stage, setStage] = useState<Stage>('processing');
   const [stepIndex, setStepIndex] = useState(0);
 
-  const diagnosis = getDiagnosis(profile);
-  const palette = severityPalette[diagnosis.severity];
+  const diagnosis     = getDiagnosis(profile);
+  const themeSeverity = severityColor === 'cyan' ? 'low' : severityColor === 'orange' ? 'moderate' : 'critical';
+  const palette       = severityPalette[themeSeverity];
+  const clinicalStats = getClinicalStats(diagnosis.severity);
 
-  // ── Processing sequence timer ──────────────────────────────────────────────
+  // ── Session Metadata ───────────────────────────────────────────────────────
+  const { sessionId, receiptDate, receiptTime } = useMemo(() => ({
+    sessionId:   Math.random().toString(36).substring(2, 10).toUpperCase(),
+    receiptDate: new Date()
+      .toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })
+      .replace(/\//g, '.'),
+    receiptTime: new Date().toLocaleTimeString('en-US', {
+      hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit',
+    }),
+  }), []);
+
+  // ── Processing timer ───────────────────────────────────────────────────────
   useEffect(() => {
     if (stage !== 'processing') return;
     if (stepIndex < PROCESSING_STEPS.length - 1) {
       const t = setTimeout(() => setStepIndex(i => i + 1), 900);
       return () => clearTimeout(t);
     }
-    // All steps done → lock-in
     const t = setTimeout(() => setStage('lockIn'), 1000);
     return () => clearTimeout(t);
   }, [stage, stepIndex]);
 
-  // ── Lock-in hold → reveal ──────────────────────────────────────────────────
+  // ── Lock-in → reveal ───────────────────────────────────────────────────────
   useEffect(() => {
     if (stage !== 'lockIn') return;
-    const t = setTimeout(() => setStage('reveal'), 2000);
+    const t = setTimeout(() => setStage('reveal'), 1600);
     return () => clearTimeout(t);
   }, [stage]);
 
-  // ── Colour theme from the quiz variant ────────────────────────────────────
-  const accentText  = severityColor === 'orange' ? 'text-orange-400' : severityColor === 'green' ? 'text-neon-green' : 'text-neon-cyan';
-  const accentBg    = severityColor === 'orange' ? 'bg-orange-400'   : severityColor === 'green' ? 'bg-neon-green'   : 'bg-neon-cyan';
+  // ── Accent helpers ─────────────────────────────────────────────────────────
+  const accentText   = severityColor === 'orange' ? 'text-orange-400'  : severityColor === 'green' ? 'text-neon-green'  : 'text-neon-cyan';
+  const accentBg     = severityColor === 'orange' ? 'bg-orange-400'    : severityColor === 'green' ? 'bg-neon-green'    : 'bg-neon-cyan';
   const accentShadow = severityColor === 'orange'
     ? 'shadow-[0_0_15px_2px_rgba(255,165,0,0.4)]'
     : severityColor === 'green' ? 'shadow-glow-green' : 'shadow-glow-cyan';
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-  const clampedValue = (key: keyof NeuralMetrics) => Math.min(100, profile[key]);
+  const exitLine   = getExitLine(profile);
+  const caseStatus = caseStatusMap[diagnosis.severity];
+  const rarityLine = rarityMap[diagnosis.severity];
 
-  const isCriticalMetric = (key: keyof NeuralMetrics, invert?: boolean) => {
-    const v = profile[key];
-    return invert ? v < 50 : v > 50;
-  };
-
-  const exitLine = getExitLine(profile);
+  // ── Export system ──────────────────────────────────────────────────────────
+  const receiptWrapperRef = useRef<HTMLDivElement>(null);
+  const { triggerExport, status: exportStatus, isCapturing } = useReceiptExport({
+    targetId:       'receipt-export',
+    classification: diagnosis.classification,
+  });
 
   return (
-    <div className="w-full max-w-2xl mx-auto flex flex-col items-center justify-center min-h-screen relative z-10 px-4 py-12">
+    <div className="w-full max-w-2xl mx-auto flex flex-col items-center justify-center min-h-screen relative z-10 px-4 py-8 sm:py-12">
       <AnimatePresence mode="wait">
 
         {/* ── PROCESSING ──────────────────────────────────────────────────── */}
@@ -80,12 +118,11 @@ export const DiagnosisReveal: React.FC<DiagnosisRevealProps> = ({ profile, sever
           <motion.div
             key="processing"
             initial={{ opacity: 0, y: 20, filter: 'blur(8px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: -20, filter: 'blur(8px)' }}
+            animate={{ opacity: 1, y: 0,  filter: 'blur(0px)' }}
+            exit={{    opacity: 0, y: -20, filter: 'blur(8px)' }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="flex flex-col items-center gap-10 text-center w-full"
+            className="flex flex-col items-center gap-10 text-center w-full my-auto"
           >
-            {/* Pulsing Core */}
             <motion.div
               animate={{ scale: [1, 1.12, 1], opacity: [0.6, 1, 0.6] }}
               transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
@@ -94,14 +131,13 @@ export const DiagnosisReveal: React.FC<DiagnosisRevealProps> = ({ profile, sever
               <div className="w-6 h-6 bg-obsidianDark rounded-full" />
             </motion.div>
 
-            {/* Cycling step messages */}
             <div className="flex flex-col items-center gap-4">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={stepIndex}
-                  initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+                  initial={{ opacity: 0, y: 8,  filter: 'blur(4px)' }}
+                  animate={{ opacity: 1, y: 0,  filter: 'blur(0px)' }}
+                  exit={{    opacity: 0, y: -8,  filter: 'blur(4px)' }}
                   transition={{ duration: 0.35, ease: 'easeOut' }}
                 >
                   <Text variant="cyber" className={`text-sm md:text-base tracking-[0.4em] ${accentText}`}>
@@ -109,13 +145,13 @@ export const DiagnosisReveal: React.FC<DiagnosisRevealProps> = ({ profile, sever
                   </Text>
                 </motion.div>
               </AnimatePresence>
-
-              {/* Progress dots */}
               <div className="flex gap-2 mt-2">
                 {PROCESSING_STEPS.map((_, i) => (
                   <motion.div
                     key={i}
-                    className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${i <= stepIndex ? `${accentBg} ${accentShadow}` : 'bg-white/20'}`}
+                    className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${
+                      i <= stepIndex ? `${accentBg} ${accentShadow}` : 'bg-white/20'
+                    }`}
                   />
                 ))}
               </div>
@@ -128,10 +164,10 @@ export const DiagnosisReveal: React.FC<DiagnosisRevealProps> = ({ profile, sever
           <motion.div
             key="lockIn"
             initial={{ opacity: 0, scale: 0.95, filter: 'blur(8px)' }}
-            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, scale: 1.02, filter: 'blur(4px)' }}
+            animate={{ opacity: 1, scale: 1,    filter: 'blur(0px)' }}
+            exit={{    opacity: 0, scale: 1.02,  filter: 'blur(4px)' }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="flex flex-col items-center gap-6 text-center"
+            className="flex flex-col items-center gap-6 text-center my-auto"
           >
             <motion.div
               animate={{ opacity: [0.7, 1, 0.7] }}
@@ -148,188 +184,322 @@ export const DiagnosisReveal: React.FC<DiagnosisRevealProps> = ({ profile, sever
           </motion.div>
         )}
 
-        {/* ── REVEAL ──────────────────────────────────────────────────────── */}
+        {/* ── REVEAL / RECEIPT ────────────────────────────────────────────── */}
         {stage === 'reveal' && (
           <motion.div
             key="reveal"
-            initial={{ opacity: 0, y: 20, filter: 'blur(8px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.7, ease: 'easeOut' }}
-            className="w-full flex flex-col gap-6"
+            initial={{ opacity: 0, y: 36, filter: 'blur(14px)' }}
+            animate={{ opacity: 1, y: 0,  filter: 'blur(0px)' }}
+            exit={{ opacity: 0, filter: 'blur(6px)' }}
+            transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full flex flex-col items-center pt-4 pb-12 sm:pt-8"
           >
-            {/* ── Header ─────────────────────────────────────────────────── */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.6 }}
-              className="text-center mb-4"
-            >
-              <Text variant="mono" className="text-white/25 tracking-[0.5em] text-[9px] mb-6 block">
-                DIGITAL EMERGENCY ROOM — NEURAL REPORT
-              </Text>
+            {/* ── Receipt Wrapper (scan sweep anchor) ───────────────────── */}
+            <div ref={receiptWrapperRef} className="relative w-full max-w-[420px]">
 
-              {/* Classification — dominant visual element */}
-              <motion.h1
-                initial={{ opacity: 0, scale: 0.97, filter: 'blur(6px)' }}
-                animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                transition={{ delay: 0.2, duration: 0.7, ease: 'easeOut' }}
-                className={`font-mono font-bold tracking-[0.15em] leading-tight ${
-                  diagnosis.severity === 'critical' ? 'text-2xl md:text-4xl' :
-                  diagnosis.severity === 'high'     ? 'text-xl md:text-3xl' :
-                                                      'text-xl md:text-2xl'
-                } ${palette.text}`}
-              >
-                {diagnosis.classification}
-              </motion.h1>
-
-              {/* Thin divider */}
-              <motion.div
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ delay: 0.5, duration: 0.6, ease: 'easeOut' }}
-                className={`mx-auto mt-5 mb-5 h-px w-20 ${palette.bar} opacity-40`}
-              />
-
-              {/* Subtitle */}
-              <motion.p
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.55, duration: 0.5 }}
-                className="text-white/45 text-sm md:text-base font-light leading-relaxed max-w-md mx-auto"
-              >
-                {diagnosis.subtitle}
-              </motion.p>
-            </motion.div>
-
-            {/* ── Metrics ────────────────────────────────────────────────── */}
-            <GlassPanel intensity="medium" className="w-full p-6 md:p-8">
-              <Text variant="mono" className="text-white/25 tracking-[0.4em] text-[9px] mb-7 block">
-                NEURAL METRICS — SCAN RESULTS
-              </Text>
-              <div className="flex flex-col gap-5">
-                {diagnosis.metrics.map((m, i) => {
-                  const value = clampedValue(m.key, m.invert);
-                  const critical = isCriticalMetric(m.key, m.invert);
-                  const displayValue = m.invert ? value : value;
-                  const barFill = m.invert ? (100 - value) : value;
-
-                  return (
+              {/* ── Cinematic Scan Sweep ──────────────────────────────────── */}
+              <AnimatePresence>
+                {isCapturing && (
+                  <motion.div
+                    key="scan-sweep"
+                    className="absolute inset-x-0 pointer-events-none z-50"
+                    style={{ top: 0, bottom: 0, borderRadius: '18px', overflow: 'hidden' }}
+                  >
                     <motion.div
-                      key={m.key}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.15 + i * 0.14, duration: 0.4, ease: 'easeOut' }}
-                      className="flex flex-col gap-1.5"
-                    >
-                      {/* Label + value row */}
-                      <div className="flex justify-between items-center">
-                        <Text variant="mono" className={`text-[10px] tracking-[0.25em] ${critical ? palette.text : 'text-white/50'}`}>
-                          {m.label}
+                      initial={{ top: 0 }}
+                      animate={{ top: '100%' }}
+                      transition={{ duration: 0.65, ease: 'linear' }}
+                      className="absolute left-0 right-0"
+                      style={{
+                        height: '2px',
+                        background: `linear-gradient(to right, transparent 0%, ${palette.hex}cc 40%, ${palette.hex} 50%, ${palette.hex}cc 60%, transparent 100%)`,
+                        boxShadow: `0 0 12px 4px ${palette.hex}44`,
+                      }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* ── THE RECEIPT CARD ─────────────────────────────────────── */}
+              <div
+                id="receipt-export"
+                className="relative w-full flex flex-col gap-0"
+                style={{
+                  background:   '#040404',
+                  border:       '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: '18px',
+                  overflow:     'hidden',
+                  boxShadow:    '0 24px 80px rgba(0,0,0,0.8), 0 2px 0px rgba(255,255,255,0.04) inset',
+                }}
+              >
+                {/* Scanline texture */}
+                <div
+                  className="absolute inset-0 pointer-events-none z-10"
+                  style={{
+                    backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px)',
+                    borderRadius: '18px',
+                  }}
+                />
+                {/* Print grain */}
+                <div
+                  data-export-grain
+                  className="absolute inset-0 pointer-events-none z-10 opacity-[0.018]"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
+                    backgroundSize: '160px 160px',
+                  }}
+                />
+                {/* Atmospheric top glow */}
+                <div
+                  data-export-glow
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-[200%] pointer-events-none"
+                  style={{
+                    height:     '120px',
+                    background: `radial-gradient(ellipse at center, ${palette.hex}08 0%, transparent 70%)`,
+                  }}
+                />
+
+                {/* ── Inner Content ─────────────────────────────────────── */}
+                <div className="relative z-20 flex flex-col gap-4 p-5 sm:p-7">
+
+                  {/* ── Header / Metadata ──────────────────────────────── */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3, duration: 0.9 }}
+                    className="flex justify-between items-start pb-5"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                  >
+                    <div className="flex flex-col gap-1.5">
+                      <Text variant="mono" className="text-[8px] tracking-[0.25em] text-white/20">
+                        PATIENT.ID // {sessionId}
+                      </Text>
+                      <Text variant="mono" className="text-[8px] tracking-[0.25em] text-white/20">
+                        SYS.TIME // {receiptTime}
+                      </Text>
+                    </div>
+                    <div className="flex flex-col gap-1.5 text-right">
+                      <Text variant="mono" className="text-[8px] tracking-[0.25em] text-white/20">
+                        DATE // {receiptDate}
+                      </Text>
+                      <div className="flex flex-col gap-0.5 items-end">
+                        <Text variant="mono" className={`text-[8px] tracking-[0.25em] ${palette.text} opacity-70`}>
+                          STATUS // {diagnosis.severity.toUpperCase()}
                         </Text>
-                        <div className="flex items-center gap-2">
-                          <motion.span
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.3 + i * 0.14 }}
-                            className={`font-mono text-xs font-bold ${critical ? palette.text : 'text-white/60'}`}
-                          >
-                            {clampedValue(m.key)}{m.unit}
-                          </motion.span>
-                          {critical && (
-                            <motion.span
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: [0, 1, 0] }}
-                              transition={{ delay: 0.4 + i * 0.14, duration: 1.5, repeat: Infinity }}
-                              className={`text-[8px] font-mono ${palette.text} tracking-widest`}
-                            >
-                              ⬤
-                            </motion.span>
-                          )}
-                        </div>
+                        <Text variant="mono" className="text-[7px] tracking-[0.2em] text-white/15">
+                          CASE // {caseStatus}
+                        </Text>
                       </div>
+                    </div>
+                  </motion.div>
 
-                      {/* Bar */}
-                      <div className="w-full h-[3px] bg-white/10 rounded-full overflow-hidden">
-                        <motion.div
-                          className={`h-full rounded-full ${critical ? palette.bar : 'bg-white/25'} ${critical ? palette.glow : ''}`}
-                          initial={{ width: '0%' }}
-                          animate={{ width: `${m.invert ? (100 - clampedValue(m.key)) : clampedValue(m.key)}%` }}
-                          transition={{ delay: 0.2 + i * 0.14, duration: 0.9, ease: 'easeOut' }}
-                        />
-                      </div>
+                  {/* ── Classification Block ───────────────────────────── */}
+                  <div className="text-center py-2 relative">
+                    <Text variant="mono" className="text-[7px] tracking-[0.45em] text-white/15 mb-3 block">
+                      NEURAL DIAGNOSTIC REPORT
+                    </Text>
 
-                      {/* Interpretation line */}
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.5 + i * 0.14, duration: 0.5 }}
-                        className={`text-[9px] md:text-[10px] font-light italic leading-relaxed ${
-                          critical ? `${palette.text} opacity-60` : 'text-white/30'
-                        }`}
-                      >
-                        {getMetricInterpretation(m.key, profile[m.key])}
-                      </motion.p>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </GlassPanel>
-
-            {/* ── Clinical Observations ──────────────────────────────────── */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.9, duration: 0.5 }}
-            >
-              <GlassPanel intensity="light" className="w-full p-6 border border-white/5">
-                <Text variant="mono" className="text-white/20 tracking-[0.4em] text-[9px] mb-5 block">
-                  CLINICAL OBSERVATIONS
-                </Text>
-                <div className="flex flex-col gap-4">
-                  {diagnosis.medicalNotes.map((note, i) => (
+                    {/* Ambient glow pulse — breathes in after classification reveals */}
                     <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -6 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 1.0 + i * 0.18, duration: 0.4 }}
-                      className="flex items-start gap-3"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: [0, 0.14, 0] }}
+                      transition={{ delay: 1.7, duration: 3.5, repeat: Infinity, repeatDelay: 5, ease: 'easeInOut' }}
+                      className="absolute inset-x-0 pointer-events-none"
+                      style={{
+                        top: '50%', transform: 'translateY(-50%)',
+                        height: '70px',
+                        background: `radial-gradient(ellipse at center, ${palette.hex}50 0%, transparent 70%)`,
+                        filter: 'blur(8px)',
+                      }}
+                    />
+                    <motion.h1
+                      initial={{ opacity: 0, scale: 0.94 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.5, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                      className={`relative font-mono font-bold leading-[1.08] mb-2 ${
+                        diagnosis.severity === 'critical' ? 'text-3xl sm:text-[2.6rem]' :
+                        diagnosis.severity === 'high'     ? 'text-2xl sm:text-[2rem]'   :
+                                                            'text-xl sm:text-2xl'
+                      } ${palette.text}`}
+                      style={{ letterSpacing: '0.06em' }}
                     >
-                      <span className={`text-[8px] mt-[4px] ${palette.text} font-mono shrink-0 opacity-60`}>▸</span>
-                      <p className="text-white/50 text-[11px] md:text-xs font-light leading-relaxed tracking-wide">
-                        {note}
-                      </p>
-                    </motion.div>
-                  ))}
-                </div>
-              </GlassPanel>
-            </motion.div>
+                      {diagnosis.classification}
+                    </motion.h1>
 
-            {/* ── Signature Exit Line ─────────────────────────────────────── */}
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.7, duration: 0.8, ease: 'easeOut' }}
-              className="text-center pt-6 pb-4"
-            >
-              <div className="w-full h-px bg-gradient-to-r from-transparent via-white/8 to-transparent mb-8" />
-              <Text variant="mono" className="text-white/15 tracking-[0.4em] text-[8px] mb-4 block">
-                DIGITAL EMERGENCY ROOM — CASE CLOSED
-              </Text>
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 2.0, duration: 1.0 }}
-                className={`text-sm md:text-base italic font-light tracking-wide leading-relaxed ${
-                  diagnosis.severity === 'critical' ? palette.text + ' opacity-60' : 'text-white/35'
-                }`}
-              >
-                {exitLine}
-              </motion.p>
-            </motion.div>
+                    {/* Rarity line */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.75, duration: 0.8 }}
+                      className="mb-3"
+                    >
+                      <Text variant="mono" className="text-[7px] tracking-[0.3em] text-white/15">
+                        {rarityLine}
+                      </Text>
+                    </motion.div>
+
+                    {/* Hairline divider */}
+                    <motion.div
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ delay: 0.65, duration: 0.7, ease: 'easeOut' }}
+                      className="mx-auto mb-4"
+                      style={{
+                        height:     '1px',
+                        width:      '40px',
+                        background: `linear-gradient(to right, transparent, ${palette.hex}55, transparent)`,
+                      }}
+                    />
+
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.8, duration: 0.9 }}
+                      className="text-white/40 text-[13px] font-light leading-relaxed max-w-[260px] mx-auto italic"
+                      style={{ fontFamily: 'Georgia, serif' }}
+                    >
+                      "{diagnosis.subtitle}"
+                    </motion.p>
+                  </div>
+
+                  {/* ── Behavioral Recognition ─────────────────────────── */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.85, duration: 0.8 }}
+                    className="flex flex-col gap-0"
+                  >
+                    <Text variant="mono" className="text-[7px] tracking-[0.4em] text-white/15 block mb-4">
+                      BEHAVIORAL RECOGNITION
+                    </Text>
+
+                    {diagnosis.behavioralFinds.map((find, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -4 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 1.0 + i * 0.13, duration: 0.55 }}
+                        className="flex gap-3 items-baseline py-2"
+                        style={{
+                          borderBottom: i < diagnosis.behavioralFinds.length - 1
+                            ? '1px solid rgba(255,255,255,0.04)'
+                            : 'none',
+                        }}
+                      >
+                        <span
+                          className={`font-mono text-[10px] shrink-0 ${palette.text}`}
+                          style={{ opacity: 0.45 }}
+                        >
+                          —
+                        </span>
+                        <p
+                          className="text-white/75 leading-snug"
+                          style={{ fontFamily: 'Georgia, serif', fontSize: '13px' }}
+                        >
+                          {find}
+                        </p>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+
+                  {/* ── System Readings ────────────────────────────────── */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.55, duration: 0.7 }}
+                    className="flex flex-col gap-0 rounded-xl px-4 py-4"
+                    style={{
+                      background: 'rgba(255,255,255,0.015)',
+                      border:     '1px solid rgba(255,255,255,0.035)',
+                    }}
+                  >
+                    <Text variant="mono" className="text-[7px] tracking-[0.4em] text-white/15 block mb-3">
+                      SYSTEM READINGS
+                    </Text>
+                    {clinicalStats.map((stat, i) => (
+                      <div
+                        key={i}
+                        className="flex justify-between items-center"
+                        style={{
+                          paddingTop:    i > 0 ? '10px' : '0',
+                          paddingBottom: i < clinicalStats.length - 1 ? '10px' : '0',
+                          borderBottom:  i < clinicalStats.length - 1
+                            ? '1px solid rgba(255,255,255,0.04)'
+                            : 'none',
+                        }}
+                      >
+                        <Text variant="mono" className="text-[9px] tracking-[0.15em] text-white/30">
+                          {stat.label}
+                        </Text>
+                        <span
+                          className={`font-mono text-[9px] tracking-[0.12em] ${palette.text}`}
+                          style={{ opacity: 0.65 }}
+                        >
+                          {stat.value}
+                        </span>
+                      </div>
+                    ))}
+                  </motion.div>
+
+                  {/* ── Footer / Exit Quote + Barcode ─────────────────── */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 2.0, duration: 1.1 }}
+                    className="flex flex-col items-center text-center"
+                    style={{ borderTop: '1px dashed rgba(255,255,255,0.06)', paddingTop: '24px', marginTop: '4px' }}
+                  >
+                    <p
+                      className={`leading-relaxed mb-7 max-w-[300px] mx-auto ${
+                        diagnosis.severity === 'critical' ? palette.text : 'text-white/55'
+                      }`}
+                      style={{
+                        fontFamily:    'Georgia, serif',
+                        fontSize:      '15px',
+                        fontStyle:     'italic',
+                        letterSpacing: '0.015em',
+                        lineHeight:    '1.65',
+                        opacity:       diagnosis.severity === 'critical' ? undefined : 0.85,
+                      }}
+                    >
+                      "{exitLine}"
+                    </p>
+
+                    {/* Barcode stamp */}
+                    <div className="flex flex-col items-center gap-2.5" style={{ opacity: 0.22 }}>
+                      <div className="flex gap-[2px] items-end" style={{ height: '30px' }}>
+                        {BARCODE_BARS.map((bar, i) => (
+                          <div
+                            key={i}
+                            className="bg-white"
+                            style={{ width: bar.width, height: bar.height, opacity: Number(bar.opacity) }}
+                          />
+                        ))}
+                      </div>
+                      <Text variant="mono" className="text-[6.5px] tracking-[0.55em] text-white/70">
+                        VALIDATED BY THE CLINIC
+                      </Text>
+                    </div>
+                  </motion.div>
+
+                </div>{/* end inner content */}
+              </div>{/* end receipt card */}
+
+            </div>{/* end receipt wrapper */}
+
+            {/* ── Export Controls ───────────────────────────────────────── */}
+            <ExportControls
+              onExport={triggerExport}
+              status={exportStatus}
+              isCapturing={isCapturing}
+              accentText={accentText}
+              accentBg={accentBg}
+              severityHex={palette.hex}
+            />
 
           </motion.div>
         )}
+
       </AnimatePresence>
     </div>
   );

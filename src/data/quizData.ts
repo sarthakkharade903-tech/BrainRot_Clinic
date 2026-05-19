@@ -279,15 +279,26 @@ export function getExitLine(profile: NeuralMetrics): string {
 export interface DiagnosisResult {
   classification: string;
   subtitle: string;
-  medicalNotes: string[];
+  behavioralFinds: string[];
   severity: 'low' | 'moderate' | 'high' | 'critical';
   metrics: {
     label: string;
     key: keyof NeuralMetrics;
     unit: string;
     criticalThreshold: number;
-    invert?: boolean; // neuralStability is "good when high"
+    invert?: boolean;
   }[];
+}
+
+// ─── Clinical Stats per severity ──────────────────────────────────────────────
+export function getClinicalStats(severity: 'low' | 'moderate' | 'high' | 'critical'): { label: string; value: string }[] {
+  const sets = {
+    low:      [{ label: 'RECOVERY WINDOW',     value: 'STILL OPEN'             }, { label: 'SCROLL VELOCITY',       value: 'MODERATE'    }],
+    moderate: [{ label: 'ATTENTION SPAN',       value: '03:47'                  }, { label: 'DAILY APP SWITCHES',    value: 'UNSETTLING'  }],
+    high:     [{ label: 'DOPAMINE RECEPTORS',   value: 'LIMITED'                }, { label: 'ATTENTION SPAN',        value: '01:22'       }],
+    critical: [{ label: 'RECOVERY WINDOW',      value: 'THEORETICALLY POSSIBLE' }, { label: 'DAILY APP SWITCHES',    value: '94+'         }],
+  };
+  return sets[severity];
 }
 
 export function getDiagnosis(profile: NeuralMetrics): DiagnosisResult {
@@ -300,22 +311,45 @@ export function getDiagnosis(profile: NeuralMetrics): DiagnosisResult {
 
   const total = dc + ad + gd + cf + stabilityDamage;
 
-  // ── Clinical Observations ─────────────────────────────────────────────────────
-  // Curated, psychologically accurate, and emotionally recognizable
-  const notes: string[] = [];
+  // ── Behavioral Recognition Engine ────────────────────────────────────────────
+  // Short, devastatingly specific internet behavior observations
+  // 70% cold realism / 30% dry humor — never meme, never sci-fi
+  const finds: string[] = [];
 
-  if (dc > 40)  notes.push("Background stimulation dependency confirmed. Idle moments register as mild discomfort.");
-  if (ad > 40)  notes.push("Sequential content consumption no longer operational. Parallel input now baseline.");
-  if (gd > 40)  notes.push("Natural environment exposure below clinical threshold. Algorithm has replaced ecosystem.");
-  if (cf > 40)  notes.push("User no longer processes single content streams. Context switching is now reflexive.");
-  if (ns < 60)  notes.push("Extended silence triggers stimulation-seeking behavior. Resting state: unavailable.");
-  if (dc > 25 && ad > 25) notes.push("App-switching behavior detected at sub-conscious execution speed.");
-  if (gd > 30 && dc > 20) notes.push("Doomscroll pattern confirmed. Content loop replaces intentional browsing.");
-  if (cf > 30)  notes.push("User consumes content while simultaneously searching for different content.");
-  if (notes.length === 0) notes.push("Minor behavioral drift detected. No acute anomalies. Monitor screen time.");
+  // Dopamine + attention combos (most shareable)
+  if (dc > 45 && ad > 35) finds.push('Opens Instagram during YouTube ads.');
+  if (dc > 50 && ns < 55) finds.push('Checks notifications immediately after just checking notifications.');
+  if (dc > 40 && ad > 40) finds.push('Skips 15-second videos because they feel too long.');
+  if (dc > 30 && cf > 30) finds.push('Phone unlocked with purpose. Purpose forgotten upon unlock.');
+  if (dc > 30)             finds.push('Refreshes the same app expecting a different emotional outcome.');
 
-  // Limit to 3 most relevant observations
-  const finalNotes = notes.slice(0, 3);
+  // Attention decay
+  if (ad > 50)             finds.push('Watches videos while searching for better videos.');
+  if (ad > 45 && cf > 35) finds.push('Currently watching something, reading something else, thinking about a third thing.');
+  if (ad > 35)             finds.push('Reads the first two sentences. Scrolls to the end. Closes the tab.');
+  if (ad > 30)             finds.push('Checks phone while already using phone.');
+
+  // Cognitive fragmentation
+  if (cf > 50)             finds.push('Has three tasks in progress. Actively avoiding all of them.');
+  if (cf > 40)             finds.push('Opens phone to look something up. Forgets. Scrolls for 20 minutes instead.');
+  if (cf > 30)             finds.push('Has twelve browser tabs open. Refuses to close any of them.');
+
+  // Grass deficiency (outdoor avoidance)
+  if (gd > 50)             finds.push('Has not touched grass. Is aware of this. Has moved on.');
+  if (gd > 40)             finds.push('Describes going outside as "a whole thing" that requires planning.');
+  if (gd > 30)             finds.push('Sunlight is currently being treated as an optional DLC.');
+
+  // Neural stability / silence intolerance
+  if (ns < 40)             finds.push('Silence is now treated as suspicious activity.');
+  if (ns < 50)             finds.push('Cannot wash dishes without a 2-hour video essay playing.');
+  if (ns < 65 && dc > 25) finds.push('Cannot be in an elevator for 10 seconds without phone deployment.');
+
+  if (finds.length === 0) {
+    finds.push('Phone checked. Nothing new. Checked again anyway.');
+    finds.push('To-do list exists entirely as a theoretical concept.');
+  }
+
+  const finalFinds = finds.slice(0, 3);
 
   const metrics: DiagnosisResult['metrics'] = [
     { label: 'DOPAMINE CORRUPTION',     key: 'dopamineCorruption',    unit: '%', criticalThreshold: 50 },
@@ -332,37 +366,37 @@ export function getDiagnosis(profile: NeuralMetrics): DiagnosisResult {
     if (dc > 20 && ad > 20) return {
       classification: 'MILDLY NOTIFICATION CONDITIONED',
       subtitle: 'Capable of functioning offline. Requires periodic reassurance from the feed.',
-      medicalNotes: finalNotes, severity: 'low', metrics,
+      behavioralFinds: finalFinds, severity: 'low', metrics,
     };
     if (gd > 20 && ns < 85) return {
       classification: 'SLIGHTLY ALGORITHM-DEPENDENT',
-      subtitle: 'Feed engagement slightly exceeds offline activity. Nothing clinical. Yet.',
-      medicalNotes: finalNotes, severity: 'low', metrics,
+      subtitle: 'Feed engagement slightly exceeds offline activity. Nothing alarming. Yet.',
+      behavioralFinds: finalFinds, severity: 'low', metrics,
     };
     if (dominant === 'dc') return {
       classification: 'PRODUCTIVITY DRIFT DETECTED',
       subtitle: 'To-do list exists. Has not been opened today. Possibly not this week.',
-      medicalNotes: finalNotes, severity: 'low', metrics,
+      behavioralFinds: finalFinds, severity: 'low', metrics,
     };
     if (dominant === 'ad') return {
       classification: 'FUNCTIONALLY ONLINE',
       subtitle: 'Attention fragmentation within technically acceptable parameters. For now.',
-      medicalNotes: finalNotes, severity: 'low', metrics,
+      behavioralFinds: finalFinds, severity: 'low', metrics,
     };
     if (dominant === 'gd') return {
       classification: 'MILD REAL-WORLD AVOIDANCE',
       subtitle: 'Outdoor exposure below recommended daily levels. Phone remains primary environment.',
-      medicalNotes: finalNotes, severity: 'low', metrics,
+      behavioralFinds: finalFinds, severity: 'low', metrics,
     };
     if (dominant === 'cf') return {
-      classification: 'LOW-GRADE CONTEXT SWITCHING',
-      subtitle: 'Occasionally starts one task before opening several others. Recognizes the pattern.',
-      medicalNotes: finalNotes, severity: 'low', metrics,
+      classification: 'MILD TAB HOARDER',
+      subtitle: 'Occasionally starts one task before opening several others. Aware of the pattern. Unconcerned.',
+      behavioralFinds: finalFinds, severity: 'low', metrics,
     };
     return {
       classification: 'TEMPORARILY FUNCTIONAL',
       subtitle: 'Baseline neural integrity maintained. Holding together reasonably well.',
-      medicalNotes: finalNotes, severity: 'low', metrics,
+      behavioralFinds: finalFinds, severity: 'low', metrics,
     };
   }
 
@@ -373,57 +407,57 @@ export function getDiagnosis(profile: NeuralMetrics): DiagnosisResult {
     if (dc > 40 && cf > 40) return {
       classification: 'CHRONICALLY STIMULATED',
       subtitle: 'Sustained focus now requires deliberate effort and three failed attempts.',
-      medicalNotes: finalNotes, severity: 'moderate', metrics,
+      behavioralFinds: finalFinds, severity: 'moderate', metrics,
     };
     if (ad > 40 && cf > 40) return {
-      classification: 'ATTENTION SPAN COMPROMISED',
+      classification: 'ATTENTION SPAN: CRITICAL',
       subtitle: 'Capable of finishing tasks. Simply chooses not to, repeatedly.',
-      medicalNotes: finalNotes, severity: 'moderate', metrics,
+      behavioralFinds: finalFinds, severity: 'moderate', metrics,
     };
     if (gd > 40 && dc > 30) return {
       classification: 'DOOMSCROLL POSITIVE',
-      subtitle: 'Content loop has replaced intentional browsing. Outdoors remain theoretical.',
-      medicalNotes: finalNotes, severity: 'moderate', metrics,
+      subtitle: 'Content loop has replaced intentional browsing. The outdoors remain theoretical.',
+      behavioralFinds: finalFinds, severity: 'moderate', metrics,
     };
     if (ns < 55 && ad > 30) return {
       classification: 'EMOTIONALLY BUFFERED',
       subtitle: 'Reality is processed through a content layer. Direct experience feels underproduced.',
-      medicalNotes: finalNotes, severity: 'moderate', metrics,
+      behavioralFinds: finalFinds, severity: 'moderate', metrics,
     };
     if (dc > 50 && ad > 30) return {
       classification: 'FEED-RESPONSIVE ORGANISM',
-      subtitle: 'Behavioral patterns now optimized for algorithmic delivery. Adaptation: complete.',
-      medicalNotes: finalNotes, severity: 'moderate', metrics,
+      subtitle: 'Behavioral patterns now fully optimized for algorithmic delivery.',
+      behavioralFinds: finalFinds, severity: 'moderate', metrics,
     };
     if (dominant === 'dc') return {
       classification: 'DOPAMINE LOOP ACTIVE',
       subtitle: 'Reward cycle has migrated from lived experience to content refresh rate.',
-      medicalNotes: finalNotes, severity: 'moderate', metrics,
+      behavioralFinds: finalFinds, severity: 'moderate', metrics,
     };
     if (dominant === 'ad') return {
-      classification: 'SUSTAINED ATTENTION FAILURE',
+      classification: 'ATTENTION SPAN: COMPROMISED',
       subtitle: 'Long-form content is technically possible. Execution is a different matter.',
-      medicalNotes: finalNotes, severity: 'moderate', metrics,
+      behavioralFinds: finalFinds, severity: 'moderate', metrics,
     };
     if (dominant === 'gd') return {
-      classification: 'PROLONGED INDOOR PROTOCOL',
+      classification: 'CHRONICALLY INDOOR',
       subtitle: 'Outdoor engagement remains available. Has simply not been selected recently.',
-      medicalNotes: finalNotes, severity: 'moderate', metrics,
+      behavioralFinds: finalFinds, severity: 'moderate', metrics,
     };
     if (dominant === 'cf') return {
       classification: 'PARALLEL PROCESSING DISORDER',
       subtitle: 'Currently watching something, reading something else, and thinking about a third thing.',
-      medicalNotes: finalNotes, severity: 'moderate', metrics,
+      behavioralFinds: finalFinds, severity: 'moderate', metrics,
     };
     if (dominant === 'stabilityDamage') return {
-      classification: 'BASELINE INSTABILITY CONFIRMED',
-      subtitle: 'Neural resting state requires background stimulation to feel normal.',
-      medicalNotes: finalNotes, severity: 'moderate', metrics,
+      classification: 'SILENCE INTOLERANT',
+      subtitle: 'Resting state now requires background stimulation to feel normal.',
+      behavioralFinds: finalFinds, severity: 'moderate', metrics,
     };
     return {
       classification: 'CHRONICALLY OVERSTIMULATED',
-      subtitle: 'Multiple systems affected simultaneously. Prognosis under evaluation.',
-      medicalNotes: finalNotes, severity: 'moderate', metrics,
+      subtitle: 'Multiple systems affected. Prognosis: still buffering.',
+      behavioralFinds: finalFinds, severity: 'moderate', metrics,
     };
   }
 
@@ -433,47 +467,47 @@ export function getDiagnosis(profile: NeuralMetrics): DiagnosisResult {
   if (dc > 60 && ad > 60 && gd > 40) return {
     classification: 'HUMAN AUTOPLAY SYSTEM',
     subtitle: 'Content consumption is now fully automated. Conscious participation: optional.',
-    medicalNotes: finalNotes, severity: 'critical', metrics,
+    behavioralFinds: finalFinds, severity: 'critical', metrics,
   };
   if (cf > 60 && ad > 50 && ns < 40) return {
-    classification: 'NEURAL SILENCE INTOLERANCE',
+    classification: 'CANNOT EXIST IN SILENCE',
     subtitle: 'Quiet moments now feel like a loading error. System demands constant input.',
-    medicalNotes: finalNotes, severity: 'critical', metrics,
+    behavioralFinds: finalFinds, severity: 'critical', metrics,
   };
   if (gd > 60 && dc > 50) return {
     classification: 'FULLY FEED-COMPATIBLE',
     subtitle: 'Real-world input has been replaced by curated alternatives. Seamlessly.',
-    medicalNotes: finalNotes, severity: 'critical', metrics,
+    behavioralFinds: finalFinds, severity: 'critical', metrics,
   };
   if (cf > 60 && dc > 50) return {
-    classification: 'COGNITIVE FRAGMENTATION DETECTED',
+    classification: 'MULTITASKING INTO NOTHING',
     subtitle: 'Thoughts are now queued, not sequential. Focus window: approximately 8 seconds.',
-    medicalNotes: finalNotes, severity: 'critical', metrics,
+    behavioralFinds: finalFinds, severity: 'critical', metrics,
   };
   if (ns < 35 && ad > 50) return {
     classification: 'REALITY BUFFERING',
     subtitle: 'Unmediated experience now feels unfinished. Content layer required to process events.',
-    medicalNotes: finalNotes, severity: 'critical', metrics,
+    behavioralFinds: finalFinds, severity: 'critical', metrics,
   };
   if (gd > 70) return {
-    classification: 'SEVERE TOUCH-GRASS DEFICIENCY',
+    classification: 'TOUCH GRASS: NOT FOUND',
     subtitle: 'Real-world interface has been offline long enough to feel unfamiliar.',
-    medicalNotes: finalNotes, severity: 'critical', metrics,
+    behavioralFinds: finalFinds, severity: 'critical', metrics,
   };
   if (dc > 70) return {
     classification: 'TERMINAL DOPAMINE DEPENDENCY',
     subtitle: 'Reward system has been fully delegated to external content infrastructure.',
-    medicalNotes: finalNotes, severity: 'critical', metrics,
+    behavioralFinds: finalFinds, severity: 'critical', metrics,
   };
   if (ad > 70) return {
     classification: 'ATTENTION ARCHITECTURE COLLAPSED',
     subtitle: 'Sustained focus has been permanently subcontracted to the algorithm.',
-    medicalNotes: finalNotes, severity: 'critical', metrics,
+    behavioralFinds: finalFinds, severity: 'critical', metrics,
   };
   return {
     classification: 'FULLY ALGORITHM-COMPATIBLE',
-    subtitle: 'Behavioral signature is now indistinguishable from content-optimized automation.',
-    medicalNotes: finalNotes, severity: 'critical', metrics,
+    subtitle: 'Behavioral signature now indistinguishable from content-optimized automation.',
+    behavioralFinds: finalFinds, severity: 'critical', metrics,
   };
 }
 

@@ -127,10 +127,10 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ severityId, onComplete }) =>
             {!isFinishing ? (
               <motion.div 
                 key="quiz-content" 
-                initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }} 
+                initial={{ opacity: 0, y: 14, filter: 'blur(8px)' }} 
                 animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} 
-                exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
+                exit={{ opacity: 0, y: -10, filter: 'blur(8px)' }}
+                transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
               >
                 <div className="flex justify-between items-center mb-10 border-b border-white/10 pb-6">
                   <div className="flex flex-col gap-1">
@@ -163,10 +163,10 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ severityId, onComplete }) =>
                   {isAnalyzing ? (
                     <motion.div
                       key="analyzing-pause"
-                      initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
-                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                      exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
-                      transition={{ duration: 0.4, ease: "easeOut" }}
+                      initial={{ opacity: 0, y: 12, filter: 'blur(8px)' }}
+                      animate={{ opacity: 1, y: 0,  filter: 'blur(0px)' }}
+                      exit={{    opacity: 0, y: -10, filter: 'blur(8px)' }}
+                      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                       className="flex flex-col items-center justify-center min-h-[250px] text-center"
                     >
                       <Text variant="cyber" className={`text-sm md:text-base tracking-[0.4em] ${theme.text} animate-pulse`}>
@@ -176,10 +176,10 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ severityId, onComplete }) =>
                   ) : (
                     <motion.div
                       key={currentIndex}
-                      initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
-                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                      exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
-                      transition={{ duration: 0.4, ease: "easeOut" }}
+                      initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
+                      animate={{ opacity: 1, y: 0,  filter: 'blur(0px)' }}
+                      exit={{    opacity: 0, y: -14, filter: 'blur(8px)' }}
+                      transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
                       className="flex flex-col gap-8"
                     >
                       <Text variant="h3" className="text-white/90 font-medium leading-relaxed min-h-[80px]">

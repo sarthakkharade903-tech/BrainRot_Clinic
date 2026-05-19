@@ -2,8 +2,8 @@ import React from 'react';
 import { motion, type HTMLMotionProps } from 'framer-motion';
 import { cn } from '../../utils/cn';
 import { fadeUp } from '../../utils/motion';
-import { AmbientParticles } from './AmbientParticles';
 import { HudOverlay } from './HudOverlay';
+import { AtmosphericScene } from './AtmosphericScene';
 
 interface PageWrapperProps extends HTMLMotionProps<'main'> {
   ambientGlow?: 'cyan' | 'green' | 'orange' | 'none';
@@ -63,8 +63,8 @@ export const PageWrapper = React.forwardRef<HTMLElement, PageWrapperProps>(
           );
         })()}
 
-        {/* Floating Digital Residue */}
-        <AmbientParticles colorVariant={ambientGlow} />
+        {/* ── 3D Atmospheric Scene (deepest layer) ── */}
+        <AtmosphericScene />
 
         {/* Animated Scanline Drift */}
         <motion.div 
