@@ -66,30 +66,30 @@ export const PageWrapper = React.forwardRef<HTMLElement, PageWrapperProps>(
         {/* ── 3D Atmospheric Scene (deepest layer) ── */}
         <AtmosphericScene />
 
-        {/* Animated Scanline Drift */}
+        {/* Subtle Scanline Texture — very faint, cinematic not cyberpunk */}
         <motion.div 
-          className="absolute inset-0 pointer-events-none z-40 mix-blend-overlay opacity-20"
+          className="absolute inset-0 pointer-events-none z-40 mix-blend-overlay opacity-[0.05]"
           style={{
-            backgroundImage: `linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%), linear-gradient(90deg, rgba(255,0,0,0.06), rgba(0,255,0,0.02), rgba(0,0,255,0.06))`,
-            backgroundSize: '100% 4px, 3px 100%'
+            backgroundImage: `linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.15) 50%)`,
+            backgroundSize: '100% 4px'
           }}
           animate={{ backgroundPosition: ["0px 0px", "0px 4px"] }}
-          transition={{ repeat: Infinity, duration: 0.2, ease: "linear" }}
+          transition={{ repeat: Infinity, duration: 0.25, ease: "linear" }}
         />
 
-        {/* Edge Vignette Breathing */}
+        {/* Edge Vignette — soft, cinematic depth */}
         <motion.div 
           className="absolute inset-0 pointer-events-none z-40"
-          style={{ boxShadow: 'inset 0 0 150px rgba(0,0,0,0.9)' }}
-          animate={{ opacity: [0.6, 1, 0.6] }}
-          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+          style={{ boxShadow: 'inset 0 0 120px rgba(0,0,0,0.55)' }}
+          animate={{ opacity: [0.75, 1, 0.75] }}
+          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        {/* Occasional Signal Flicker */}
+        {/* Occasional very-soft signal flicker */}
         <motion.div 
           className="absolute inset-0 pointer-events-none z-50 bg-white mix-blend-overlay"
-          animate={{ opacity: [0, 0, 0, 0.04, 0, 0, 0] }}
-          transition={{ duration: 12, repeat: Infinity, times: [0, 0.4, 0.41, 0.42, 0.43, 0.9, 1] }}
+          animate={{ opacity: [0, 0, 0, 0.02, 0, 0, 0] }}
+          transition={{ duration: 18, repeat: Infinity, times: [0, 0.4, 0.41, 0.42, 0.43, 0.9, 1] }}
         />
 
         {/* Noise Texture Overlay for premium cinematic feel */}

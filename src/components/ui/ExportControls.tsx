@@ -9,6 +9,7 @@ interface ExportControlsProps {
   accentText: string;
   accentBg: string;
   severityHex: string;
+  onEnterRecovery?: () => void;
 }
 
 /** Labels shown inside the export button based on state */
@@ -26,8 +27,8 @@ export const ExportControls: React.FC<ExportControlsProps> = ({
   status,
   isCapturing,
   accentText,
-  accentBg,
   severityHex,
+  onEnterRecovery,
 }) => {
   const isActive = status !== 'idle' && status !== 'done' && status !== 'error';
   const label = STATUS_LABEL[status];
@@ -144,6 +145,19 @@ export const ExportControls: React.FC<ExportControlsProps> = ({
           </motion.p>
         )}
       </AnimatePresence>
+
+      {/* ── Enter Recovery Button ─────────────────────────────────────── */}
+      {onEnterRecovery && (
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 3.5, duration: 1.0 }}
+          onClick={onEnterRecovery}
+          className="mt-6 font-mono text-[9px] tracking-[0.4em] text-white/30 hover:text-white/80 transition-colors duration-500 uppercase"
+        >
+          Enter Recovery Room
+        </motion.button>
+      )}
     </motion.div>
   );
 };

@@ -117,7 +117,7 @@ export function useReceiptExport({ targetId, classification }: UseReceiptExportO
           // Sharper font rendering for the exported image
           WebkitFontSmoothing: 'antialiased',
           textRendering: 'geometricPrecision',
-        },
+        } as any,
         // Skip web fonts that may 404 (use system fallbacks)
         skipFonts: false,
         // Cache bust for any cross-origin resources

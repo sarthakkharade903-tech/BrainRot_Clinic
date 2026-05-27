@@ -9,6 +9,7 @@ import type { NeuralMetrics } from '../data/quizData';
 interface DiagnosisRevealProps {
   profile: NeuralMetrics;
   severityColor: 'cyan' | 'orange' | 'green';
+  onEnterRecovery?: () => void;
 }
 
 // ─── Processing Sequence ──────────────────────────────────────────────────────
@@ -53,7 +54,7 @@ const BARCODE_BARS = Array.from({ length: 38 }, () => ({
   opacity: (Math.random() * 0.35 + 0.55).toFixed(2),
 }));
 
-export const DiagnosisReveal: React.FC<DiagnosisRevealProps> = ({ profile, severityColor }) => {
+export const DiagnosisReveal: React.FC<DiagnosisRevealProps> = ({ profile, severityColor, onEnterRecovery }) => {
   const [stage, setStage] = useState<Stage>('processing');
   const [stepIndex, setStepIndex] = useState(0);
 
@@ -495,6 +496,7 @@ export const DiagnosisReveal: React.FC<DiagnosisRevealProps> = ({ profile, sever
               accentText={accentText}
               accentBg={accentBg}
               severityHex={palette.hex}
+              onEnterRecovery={onEnterRecovery}
             />
 
           </motion.div>

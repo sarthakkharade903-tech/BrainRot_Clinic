@@ -102,7 +102,7 @@ const SceneContent: React.FC = () => {
       {DEBRIS.map((d, i) => (
         <mesh
           key={i}
-          ref={el => { debrisRefs.current[i] = el; }}
+          ref={(el: THREE.Mesh | null) => { debrisRefs.current[i] = el; }}
           position={d.pos}
           rotation={d.rot}
         >

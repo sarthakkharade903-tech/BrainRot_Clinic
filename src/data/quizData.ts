@@ -63,7 +63,7 @@ export const quizVariants: Record<string, {
   },
   '2': {
     color: 'orange',
-    diagnosticMessage: 'MODERATE ATTENTION DEFICIT DETECTED',
+    diagnosticMessage: 'MODERATE ATTENTION FRAGMENTATION LOGGED',
     questions: [
       { weight: 2, title: "How many tabs are currently open on your mobile browser?", options: [
         { text: "Enough to make the browser icon change to a smiley face.", impact: { cognitiveFragmentation: 25, attentionDecay: 15 } },
@@ -257,6 +257,8 @@ export function getExitLine(profile: NeuralMetrics): string {
   // Severe cases — max impact lines
   if (total > 280) return "Patient re-released into algorithmic society. Prognosis: buffering.";
   if (dc > 65 && ad > 55) return "Further exposure to short-form content not recommended. Recommendation ignored.";
+  if (ad > 50 && cf > 45) return "Focus window has been closed. Timestamp noted. Prognosis: unclear.";
+  if (ns < 40 && dc > 50) return "Rest was recommended. Patient refreshed the page instead."; 
   if (ns < 35) return "Neural recovery remains theoretically possible. We have noted the theory.";
   if (gd > 65) return "Touching grass advised. Statistically, it will not happen.";
   if (cf > 60 && ad > 50) return "Case forwarded to the attention span department. They were unavailable.";
@@ -344,6 +346,14 @@ export function getDiagnosis(profile: NeuralMetrics): DiagnosisResult {
   if (ns < 50)             finds.push('Cannot wash dishes without a 2-hour video essay playing.');
   if (ns < 65 && dc > 25) finds.push('Cannot be in an elevator for 10 seconds without phone deployment.');
 
+  // Additional high-specificity behavioral observations
+  if (ad > 55 && dc > 40) finds.push('Opened a 2-minute video. Left at the 18-second mark.');
+  if (dc > 35)             finds.push('Saved an article to read later. Later has not arrived.');
+  if (ns < 55 && ad > 30) finds.push('Listened to a podcast while scrolling. Retained nothing from either.');
+  if (dc > 40 && gd > 30) finds.push('Watching a video about phone addiction. On the phone.');
+  if (cf > 35)             finds.push('Started a sentence mid-conversation. Phone buzzed. Sentence never finished.');
+  if (ad > 35)             finds.push('Checked the time. Failed to register the time. Checked again.');
+
   if (finds.length === 0) {
     finds.push('Phone checked. Nothing new. Checked again anyway.');
     finds.push('To-do list exists entirely as a theoretical concept.');
@@ -390,7 +400,7 @@ export function getDiagnosis(profile: NeuralMetrics): DiagnosisResult {
     };
     if (dominant === 'cf') return {
       classification: 'MILD TAB HOARDER',
-      subtitle: 'Occasionally starts one task before opening several others. Aware of the pattern. Unconcerned.',
+      subtitle: 'The tabs will be closed eventually. This is a promise made and broken every single day.',
       behavioralFinds: finalFinds, severity: 'low', metrics,
     };
     return {
@@ -441,7 +451,7 @@ export function getDiagnosis(profile: NeuralMetrics): DiagnosisResult {
     };
     if (dominant === 'gd') return {
       classification: 'CHRONICALLY INDOOR',
-      subtitle: 'Outdoor engagement remains available. Has simply not been selected recently.',
+      subtitle: 'Going outside remains an option. It has not been selected today. Or in recent memory.',
       behavioralFinds: finalFinds, severity: 'moderate', metrics,
     };
     if (dominant === 'cf') return {
